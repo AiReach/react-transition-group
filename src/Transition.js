@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types'
 import React from 'react'
-import ReactDOM from 'react-dom'
 
 import config from './config'
 import { timeoutsShape } from './utils/PropTypes'
@@ -206,19 +205,24 @@ class Transition extends React.Component {
     return { exit, enter, appear }
   }
 
-  updateStatus(mounting = false, nextStatus) {
+updateStatus(mounting = false) {
+    let nextStatus = this.nextStatus;
+
     if (nextStatus !== null) {
+      this.nextStatus = null;
       // nextStatus will always be ENTERING or EXITING.
-      this.cancelNextCallback()
-      const node = ReactDOM.findDOMNode(this)
+      this.cancelNextCallback();
+      const node = this.child;
 
       if (nextStatus === ENTERING) {
-        this.performEnter(node, mounting)
+        this.performEnter(node, mounting);
       } else {
-        this.performExit(node)
+        this.performExit(node);
       }
     } else if (this.props.unmountOnExit && this.state.status === EXITED) {
-      this.setState({ status: UNMOUNTED })
+      this.setState({
+        status: UNMOUNTED
+      });
     }
   }
 
@@ -351,21 +355,17 @@ class Transition extends React.Component {
     delete childProps.onExited
 
     if (typeof children === 'function') {
-      // allows for nested Transitions
-      return (
-        <TransitionGroupContext.Provider value={null}>
-          {children(status, childProps)}
-        </TransitionGroupContext.Provider>
-      )
+      return React.cloneElement(children(status, childProps), {
+        ...childProps,
+        ref: child => (this.child = child),
+      });
     }
 
-    const child = React.Children.only(children)
-    return (
-      // allows for nested Transitions
-      <TransitionGroupContext.Provider value={null}>
-        {React.cloneElement(child, childProps)}
-      </TransitionGroupContext.Provider>
-    )
+    const child = React.Children.only(children);
+    return React.cloneElement(child, {
+      ...childProps,
+      ref: child => (this.child = child),
+    });
   }
 }
 
